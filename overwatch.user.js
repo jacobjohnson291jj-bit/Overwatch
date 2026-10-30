@@ -1,7 +1,8 @@
+
 // ==UserScript==
 // @name OVERWATCH
-// @version 0.1.2
-// @description OVERWATCH Bazaar Directory Connection Test
+// @version 0.2.0
+// @description OVERWATCH Item Market Test
 // ==/UserScript==
 
 (function () {
@@ -15,7 +16,6 @@
 
         const box = document.createElement("div");
         box.id = "overwatch-test";
-
         box.style.cssText = `
             position:fixed;
             bottom:20px;
@@ -38,7 +38,7 @@
         tagline.textContent = "Find the newest profitable prices.";
 
         const button = document.createElement("button");
-        button.textContent = "TEST XANAX DIRECTORY";
+        button.textContent = "TEST ITEM MARKET";
         button.style.cssText =
             "width:100%;padding:12px;background:#187747;color:white;border:0;border-radius:8px;font-weight:bold;";
 
@@ -51,20 +51,16 @@
 
         button.addEventListener("click", async function () {
             button.disabled = true;
-            output.textContent = "Connecting to Torn API...";
+            output.textContent = "Checking Item Market...";
 
             try {
-                if (!API_KEY || API_KEY.includes("###")) {
-                    throw new Error("PDA API key placeholder was not replaced.");
-                }
-
                 if (typeof window.PDA_httpGet !== "function") {
                     throw new Error("Torn PDA HTTP helper not found.");
                 }
 
                 const url =
                     "https://api.torn.com/v2/market/" +
-                    ITEM_ID + "/bazaar?key=" +
+                    ITEM_ID + "/itemmarket?key=" +
                     encodeURIComponent(API_KEY);
 
                 const response = await window.PDA_httpGet(url);
@@ -85,16 +81,33 @@
                     );
                 }
 
-                output.textContent =
-                    "CONNECTION SUCCESSFUL!\n\n" +
-                    "HTTP status: " + response.status + "\n\n" +
-                    "Torn API response:\n" +
-                    JSON.stringify(data, null, 2).slice(0, 5000);
+                const listings = data.itemmarket || [];
+
+                let report =
+                    "ITEM MARKET CONNECTION SUCCESSFUL!\n\n" +
+                    "Item ID: " + ITEM_ID + "\n" +
+                    "HTTP status: " + response.status + "\n" +
+                    "Listings returned: " + listings.length + "\n\n";
+
+                listings.slice(0, 20).forEach(function (item, index) {
+                    report +=
+                        (index + 1) + ". Price: $" +
+                        Number(item.cost).toLocaleString() +
+                        "\n   Quantity: " + item.quantity + "\n\n";
+                });
+
+                if (!listings.length) {
+                    report += "No listings returned.\n\n";
+                }
+
+                report += "RAW RESPONSE:\n" +
+                    JSON.stringify(data, null, 2).slice(0, 2500);
+
+                output.textContent = report;
 
             } catch (error) {
                 output.textContent =
-                    "CONNECTION TEST FAILED\n\n" +
-                    error.message;
+                    "TEST FAILED\n\n" + error.message;
             } finally {
                 button.disabled = false;
             }
